@@ -71,11 +71,11 @@ local function button(props)
 
         [Children] = {
             addCorner(),
-            addStroke({Thickness = Tween(thickness, TweenInfo.new(0.25)), Transparency = Tween1, Color = Color3.fromRGB(0, 0, 0)})
+            addStroke({Thickness = Tween(thickness, TweenInfo.new(0.25)), Transparency = Tween1})
         },
 
         [Fusion.OnEvent "MouseEnter"] = function()
-            thickness:set(3)
+            thickness:set(1.5)
         end,
 
         [Fusion.OnEvent "MouseLeave"] = function()
