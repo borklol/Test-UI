@@ -20,16 +20,6 @@ function Signal:Fire(...: any)
 	table.clear(args)
 end
 
-function Signal:FireSync(...: any)
-	local args = {...}
-
-	for _, connection in ipairs(self._callbacks) do
-		connection._callback(unpack(args))
-	end
-
-	table.clear(args)
-end
-
 function Signal:Destroy()
 	for _, connection in ipairs(self._callbacks) do
 		connection:Disconnect()
