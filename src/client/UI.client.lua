@@ -15,6 +15,8 @@ local Position = Value(UDim2.fromScale(0.5, 0.45))
 local Tween1 = Tween(Transparency, TweenInfo.new(0.25))
 local Tween2 = Tween(Position, TweenInfo.new(0.25))
 
+local ref = Value()
+
 local function addStroke(props)
     return New "UIStroke" {
         Color = props.Color or Color3.fromRGB(255, 255, 255),
@@ -27,6 +29,36 @@ local function addCorner()
     return New "UICorner" {
         CornerRadius = UDim.new(0, 16)
     }
+end
+
+local function tooltip(props)
+
+    local spring = Fusion.Spring(props.MousePosition, 10, 1)
+    local textSize = props.TextSize or 24
+    local transparencyTween = Tween(props.Transparency, TweenInfo.new(0.25))
+
+    local button = New "TextLabel" {
+        Position = Computed(function()
+            return spring:get() + UDim2.fromScale(0, 0.05)
+        end),
+        Size = Computed(function()
+            return UDim2.fromOffset(((textSize*0.5)*string.len(props.Text)), 25)
+        end),
+        BackgroundColor3 = Color3.fromRGB(0, 0, 0),
+        BackgroundTransparency = Computed(function()
+            return math.clamp(transparencyTween:get(), 0.5, 1)
+        end),
+        Parent = props.Ref,
+        Text = props.Text,
+        TextSize = textSize,
+        TextXAlignment = "Left",
+        TextColor3 = Color3.fromRGB(255, 255, 255),
+        TextTransparency = transparencyTween,
+
+        [Children] = addCorner(),
+    }
+
+    return button
 end
 
 local function backplate(props)
@@ -58,6 +90,11 @@ end
 
 local function button(props)
     local thickness = Value(0)
+    local mousePos = Value(UDim2.fromScale(0.5, 0.5))
+    local tt
+    local ttTransparency = Value(1)
+    local step
+
     return New "TextButton" {
         BackgroundTransparency = 1,
         TextColor3 = Color3.fromRGB(255, 255, 255),
@@ -75,11 +112,36 @@ local function button(props)
         },
 
         [Fusion.OnEvent "MouseEnter"] = function()
+            if (Transparency:get() == 1) then return end
             thickness:set(1.5)
+
+            step = game:GetService("RunService").Heartbeat:Connect(function()
+                local pos = game:GetService("UserInputService"):GetMouseLocation()
+                mousePos:set(UDim2.fromOffset(pos.X, pos.Y + 15))
+            end)
+
+            local pos = game:GetService("UserInputService"):GetMouseLocation()
+            mousePos:set(UDim2.fromOffset(pos.X, pos.Y + 15))
+
+            tt = tooltip({
+                MousePosition = mousePos,
+                Text = game:GetService("HttpService"):GenerateGUID(false),
+                Ref = ref,
+                Transparency = ttTransparency,
+            })
+
+            ttTransparency:set(0)
         end,
 
         [Fusion.OnEvent "MouseLeave"] = function()
+            if (Transparency:get() == 1 and not tt) then return end
+
             thickness:set(0)
+
+            if (not tt) then return end
+            step:Disconnect()
+            ttTransparency:set(1)
+            game:GetService("Debris"):AddItem(tt, 0.25)
         end,
     }
 end
@@ -89,8 +151,21 @@ game:GetService("StarterGui"):SetCoreGuiEnabled(Enum.CoreGuiType.All, false)
 New "ScreenGui" {
     ResetOnSpawn = false,
     IgnoreGuiInset = true,
+    Parent = game.Players.LocalPlayer.PlayerGui,
+
+    [Children] = New "Frame" {
+        Size = UDim2.fromScale(1, 1),
+        BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+        BorderSizePixel = 0,
+    }
+}
+
+New "ScreenGui" {
+    ResetOnSpawn = false,
+    IgnoreGuiInset = true,
     Parent = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui"),
 
+    [Fusion.Ref] = ref,
     [Children] = backplate({
 
         [Children] = {
@@ -101,7 +176,11 @@ New "ScreenGui" {
 
             button {
                 Text = "Test",
-            }
+            },
+
+            button {
+                Text = "Test2",
+            },
         }
     }),
 }
